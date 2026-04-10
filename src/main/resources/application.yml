@@ -1,0 +1,114 @@
+spring:
+  application:
+    name: url-shortener
+
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/urlshortener}
+    username: ${DATABASE_USERNAME:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
+
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:validate}
+    show-sql: ${JPA_SHOW_SQL:false}
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  messages:
+    basename: classpath:messages
+    encoding: UTF-8
+    cache-duration: ${MESSAGES_CACHE_DURATION:1h}
+    fallback-to-system-locale: false
+
+  threads:
+    virtual:
+      enabled: on
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: method
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,caches,metrics
+
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+    org.urlshortener.urlshortener: ${APP_LOG_LEVEL:INFO}
+    org.urlshortener.urlshortener.event: ${EVENT_LOG_LEVEL:DEBUG}
+
+server:
+  port: ${APP_PORT:8080}
+  compression:
+    enabled: true
+    mime-types: [ application/json, application/xml, text/html, text/plain, text/event-stream ]
+    min-response-size: 1024
+
+app:
+  base-url: ${APP_BASE_URL:http://localhost:8080}
+
+  security:
+    token-secret: ${TOKEN_SECRET:change-me-in-production}
+
+  sse:
+    timeout: ${SSE_TIMEOUT:300000}
+
+  cleanup:
+    enabled: ${CLEANUP_ENABLED:true}
+    retention-days: ${CLEANUP_RETENTION_DAYS:30}
+    batch-size: ${CLEANUP_BATCH_SIZE:1000}
+    cron: ${CLEANUP_CRON:0 0 3 * * *}
+
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    default-limit:
+      max-requests: ${RATE_LIMIT_DEFAULT_MAX:10}
+      window-seconds: ${RATE_LIMIT_DEFAULT_WINDOW:60}
+    endpoints:
+      # Création d'URL
+      "POST:/api/v1/shorten":
+        max-requests: ${RATE_LIMIT_CREATE_MAX:10}
+        window-seconds: ${RATE_LIMIT_CREATE_WINDOW:60}
+
+      # Redirection
+      "GET:/r/*":
+        max-requests: ${RATE_LIMIT_REDIRECT_MAX:120}
+        window-seconds: ${RATE_LIMIT_REDIRECT_WINDOW:60}
+
+      # Consultation métadonnées
+      "GET:/api/v1/shorten/*":
+        max-requests: ${RATE_LIMIT_METADATA_MAX:60}
+        window-seconds: ${RATE_LIMIT_METADATA_WINDOW:60}
+
+      # Modification
+      "PUT:/api/v1/shorten/*":
+        max-requests: ${RATE_LIMIT_UPDATE_MAX:10}
+        window-seconds: ${RATE_LIMIT_UPDATE_WINDOW:60}
+
+      # Suppression
+      "DELETE:/api/v1/shorten/*":
+        max-requests: ${RATE_LIMIT_DELETE_MAX:10}
+        window-seconds: ${RATE_LIMIT_DELETE_WINDOW:60}
+
+      # Statistiques
+      "GET:/api/v1/shorten/*/stats":
+        max-requests: ${RATE_LIMIT_STATS_MAX:30}
+        window-seconds: ${RATE_LIMIT_STATS_WINDOW:60}
+
+      # SSE
+      "GET:/api/v1/shorten/*/events":
+        max-requests: ${RATE_LIMIT_SSE_MAX:5}
+        window-seconds: ${RATE_LIMIT_SSE_WINDOW:60}
