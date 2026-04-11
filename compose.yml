@@ -19,11 +19,58 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    labels:
+      - "org.urlshortener.service=database"
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: url-shortener-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    ports:
+      - "${PGADMIN_PORT:-5055}:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - shortener-network
+    depends_on:
+      db:
+        condition: service_healthy
+    labels:
+      - "org.urlshortener.service=admin-ui"
+
+  k6:
+    image: grafana/k6:latest
+    container_name: url-shortener-k6
+    profiles:
+      - testing
+    network_mode: host
+    environment:
+      BASE_URL: ${K6_BASE_URL}
+      SHORT_CODE: ${K6_SHORT_CODE}
+
+      K6_OUT: json=/results/results.json
+      K6_WEB_DASHBOARD: "true"
+      K6_WEB_DASHBOARD_EXPORT: /results/html-report.html
+    volumes:
+      - ./tests/k6:/scripts:ro
+      - ./tests/results:/results
+    command: run /scripts/load_test.js
+    labels:
+      - "org.urlshortener.service=load-testing"
 
 volumes:
   postgres_data:
     name: url-shortener-postgres-data
 
+  pgadmin_data:
+    name: url-shortener-pgadmin-data
+
 networks:
   shortener-network:
     name: url-shortener-network
+    driver: bridge

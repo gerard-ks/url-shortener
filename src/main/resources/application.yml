@@ -6,6 +6,9 @@ spring:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/urlshortener}
     username: ${DATABASE_USERNAME:postgres}
     password: ${DATABASE_PASSWORD:postgres}
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX:10}
+      minimum-idle: ${DB_POOL_MIN:5}
 
   jpa:
     hibernate:
